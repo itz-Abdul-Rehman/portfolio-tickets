@@ -120,23 +120,27 @@ async def create_ticket(payload: TicketPayload):
 
 @app.post("/reply")
 async def reply_ticket(payload: ReplyPayload):
-    sheet = get_sheet()
-
     try:
-        cell = sheet.find(payload.ticketId, in_column=COL["id"])
-    except gspread.exceptions.CellNotFound:
-        raise HTTPException(status_code=404, detail="Ticket not found")
+        sheet = get_sheet()
 
-    row = cell.row
-    sheet.update_cell(row, COL["status"], "resolved")
-    sheet.update_cell(row, COL["reply"], payload.replyMessage)
+        try:
+            cell = sheet.find(payload.ticketId, in_column=COL["id"])
+        except gspread.exceptions.CellNotFound:
+            raise HTTPException(status_code=404, detail="Ticket not found")
 
-    try:
+        row = cell.row
+        sheet.update_cell(row, COL["status"], "resolved")
+        sheet.update_cell(row, COL["reply"], payload.replyMessage)
+
         send_email(payload.toEmail, payload.toName, payload.replyMessage, payload.ticketId)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Email failed: {str(e)}")
 
-    return {"success": True}
+        return {"success": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/tickets")
