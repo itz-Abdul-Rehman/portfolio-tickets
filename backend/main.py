@@ -1,9 +1,7 @@
 import os
 import uuid
 import json
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import resend
 
 import gspread
 from google.oauth2.service_account import Credentials
@@ -42,44 +40,14 @@ def get_sheet():
     return client.open_by_key(os.environ["SHEET_ID"]).sheet1
 
 
-def send_email(to_email: str, to_name: str, reply_message: str, ticket_id: str):
-    gmail_user = os.environ["GMAIL_USER"]
-    gmail_pass = os.environ["GMAIL_APP_PASSWORD"]
-
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = "Re: Your message to Abdul Rehman"
-    msg["From"] = f"Abdul Rehman <{gmail_user}>"
-    msg["To"] = to_email
-
-    html = f"""
-    <div style="font-family:Arial,sans-serif;max-width:580px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;">
-      <div style="background:#0f172a;padding:28px 36px;border-bottom:3px solid #6366f1;">
-        <p style="color:#94a3b8;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin:0 0 6px;">Abdul Rehman</p>
-        <h1 style="color:#ffffff;margin:0;font-size:20px;font-weight:600;">Re: Your message to Abdul Rehman</h1>
-      </div>
-      <div style="padding:36px;">
-        <p style="color:#1e293b;font-size:15px;line-height:1.8;margin:0 0 24px;">Dear <strong>{to_name}</strong>,</p>
-        <div style="border-left:3px solid #6366f1;padding:16px 20px;background:#f8fafc;margin-bottom:28px;">
-          <p style="color:#1e293b;font-size:14px;line-height:1.8;margin:0;white-space:pre-line;">{reply_message}</p>
-        </div>
-        <p style="color:#94a3b8;font-size:12px;margin:0 0 24px;">Ticket: #{ticket_id}</p>
-        <p style="color:#475569;font-size:14px;line-height:1.8;margin:0;">
-          Best regards,<br>
-          <strong style="color:#0f172a;">Abdul Rehman</strong><br>
-          <span style="color:#6366f1;font-size:13px;">AI Automation Developer</span>
-        </p>
-      </div>
-      <div style="padding:16px 36px;background:#f8fafc;border-top:1px solid #e2e8f0;">
-        <p style="color:#94a3b8;font-size:11px;margin:0;">Reply to this email to continue the conversation.</p>
-      </div>
-    </div>
-    """
-
-    msg.attach(MIMEText(html, "html"))
-
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-        server.login(gmail_user, gmail_pass)
-        server.sendmail(gmail_user, to_email, msg.as_string())
+def send_email(to_email, to_name, reply_message, ticket_id):
+    resend.api_key = os.environ.get("RESEND_API_KEY")
+    resend.Emails.send({
+        "from": "onboarding@resend.dev",
+        "to": to_email,
+        "subject": "Re: Your message to Abdul Rehman",
+        "html": f"<p>Hi {to_name},</p><p>{reply_message}</p><p>Best regards,<br>Abdul Rehman</p>",
+    })
 
 
 # ── Request models ──────────────────────────────────────────────────────────
